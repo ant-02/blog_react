@@ -1,0 +1,40 @@
+.tab {
+    display: flex;
+    flex: 1;
+    min-width: 410px;
+    max-width: 460px;
+}
+
+.post-card {
+    background-color: #172d50;
+    position: relative;
+    flex: none;
+    margin: 20px 12px;
+    width: 400px;
+    height: 256px;
+    padding: 32px;
+    border-radius: 32px;
+    background: #172d50;
+    color: #fffffff2;
+    box-sizing: border-box;
+    background-size: cover;
+    transition: transform .3s ease-out;
+    transform: perspective(500px) rotateX(0) rotateY(0);
+    transform-style: preserve-3d;
+    overflow: hidden;
+    mask-image: url(../../assets/img/logo-black.png);
+    mask-size: 100%;
+}
+
+.post-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: -1;
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(to bottom, #0a0628d1 0, #0000003b);
+    mix-blend-mode: darken;
+}

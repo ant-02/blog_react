@@ -1,0 +1,34 @@
+.title {
+    font-size: 1.6rem;
+    font-weight: 900;
+    padding: 16px;
+    width: 100%;
+}
+
+.warp {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.more-row {
+    width: 100%;
+    margin-top: 12px;
+    text-align: right;
+}
+
+.more-but {
+    text-align: right;
+    margin: 20px;
+    padding: 8px 14px;
+    border-radius: 12px;
+    transition: all .2s ease-out;
+    color: #252525;
+}
+
+a {
+    background-color: transparent;
+}
+
+.more-but:hover {
+    background-color: #8682a925;
+}
