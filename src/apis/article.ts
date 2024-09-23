@@ -17,7 +17,7 @@ export type ArticlePreviewRes = {
 
 export const fetchArticlePreviewsAPI = () => {
     return http.request<ResType<ArticlePreviewRes>>({
-        url: '/articles',
+        url: '/articleTags',
         method: 'GET',
     })
 }

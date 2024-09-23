@@ -5,13 +5,12 @@ import { ArticlePreview, fetchArticlePreviewsAPI } from "@/apis/article"
 import { useEffect, useState } from "react"
 
 const Body: React.FC = () => {
-    const [articlePreviews, setArticlePreviews] = useState<ArticlePreview[]>([])
+    const [articlePreviewTags, setArticlePreviewTags] = useState<ArticlePreview[]>([])
     useEffect(() => {
         const getArticlePreviews = async () => {
             try {
                 const res = await fetchArticlePreviewsAPI()
-                console.log("-------", res)
-                setArticlePreviews(res.data.data.articles)
+                setArticlePreviewTags(res.data.data.articlePreviewTags)
             } catch(err) {
                 throw new Error('fetch articles error')
             }
@@ -19,10 +18,9 @@ const Body: React.FC = () => {
         getArticlePreviews()
     }, [])
     
-    console.log(articlePreviews)
     return (
         <div className={classNames('page-home')}>
-            <Nav />
+            {articlePreviewTags.map(item => <Nav key={item.id} articlePreviewTag={item} />)}
         </div>
     )
 }

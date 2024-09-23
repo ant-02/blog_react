@@ -1,7 +1,11 @@
+
 header {
+    top: 0;
     margin: 20px 0;
     width: 100%;
     display: flex;
+    position: fixed;
+    z-index: 100;
 }
 
 .header-logo {
