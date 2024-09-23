@@ -23,8 +23,8 @@ const Header: React.FC = () => {
         </div>
         <nav>
           <ul>
-            <li><a href="/">技术</a></li>
-            <li><a href="/">算法</a></li>
+            <li><a href="/">首页</a></li>
+            <li><a href="/">专题</a></li>
             <li><a href="/">关于</a></li>
           </ul>
         </nav>
