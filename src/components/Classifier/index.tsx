@@ -1,27 +1,28 @@
 import classNames from "classnames"
 import "./index.scss"
 import Nav from "../Nav"
-import { ArticlePreviewTagRes, fetchArticlePreviewsAPI } from "@/apis/article"
+import { ArticlePreviewTagRes, fetchArticlePreviewsByTagAPI } from "@/apis/article"
 import { useEffect, useState } from "react"
 
-const Body: React.FC = () => {
-    const [articlePreviewTags, setArticlePreviewTags] = useState<ArticlePreviewTagRes[]>([])
+const ClassifierBody: React.FC = () => {
+    const [articlePreviewTag, setArticlePreviewTag] = useState<ArticlePreviewTagRes>()
     useEffect(() => {
         const getArticlePreviews = async () => {
             try {
-                const res = await fetchArticlePreviewsAPI()
-                setArticlePreviewTags(res.data.data.articlePreviewTags)
+                const res = await fetchArticlePreviewsByTagAPI("1")
+                setArticlePreviewTag(res.data.data)
             } catch(err) {
                 throw new Error('fetch articles error')
             }
         }
         getArticlePreviews()
     }, [])
+    
     return (
         <div className={classNames('page-home')}>
-            {articlePreviewTags.map(item => <Nav key={item.id} articlePreviewTag={item} />)}
+            <Nav articlePreviewTag={articlePreviewTag} />
         </div>
     )
 }
 
-export default Body
+export default ClassifierBody

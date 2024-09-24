@@ -11,14 +11,22 @@ export type ArticlePreview = {
     createdAt: string
 }
 
-export type ArticlePreviewRes = {
-    articles: ArticlePreview[]
+export type ArticlePreviewTagRes = {
+    id: number
+    name: string
+    articlePreviews: ArticlePreview[]
 }
 
 export const fetchArticlePreviewsAPI = () => {
-    return http.request<ResType<ArticlePreviewRes>>({
+    return http.request<ResType<ArticlePreviewTagRes[]>>({
         url: '/articleTags',
         method: 'GET',
     })
 }
 
+export const fetchArticlePreviewsByTagAPI = (id : string) => {
+    return http.request<ResType<ArticlePreviewTagRes>>({
+        url: '/articleTag/' + id,
+        method: 'GET'
+    })
+}
