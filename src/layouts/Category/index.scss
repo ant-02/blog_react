@@ -1,0 +1,44 @@
+.category-out-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 70px;
+}
+
+.category-in-container {
+  width: 1320px;
+}
+
+.category-title {
+  margin: 40px 16px;
+  padding: 20px 0;
+  font-size: 36px;
+  font-weight: bold;
+}
+
+.category-container {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.category-container-content {
+  height: 36px;
+  border: 1px solid #252525;
+  padding: 0 18px;
+  border-radius: 100px;
+  font-size: 16px;
+  margin: 0 16px;
+  display: flex;
+  justify-content: center; /* 水平居中 */
+  align-items: center;
+  text-align: center;
+  background-color: white;
+  color: black;
+}
+
+
+.category-container-content:hover {
+    background-color: black;
+    color: white;
+}

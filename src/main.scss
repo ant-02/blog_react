@@ -1,0 +1,17 @@
+a {
+  text-decoration: none;
+  color: black;
+}
+
+/* 移除自动填充的背景色 */
+input:-webkit-autofill {
+  -webkit-text-fill-color: #000000 !important; /* 文字颜色 */
+  -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important; /* 背景色 */
+}
+
+/* 如果需要保持悬停/焦点状态 */
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #000000 !important;
+  -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
+}
