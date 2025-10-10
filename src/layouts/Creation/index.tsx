@@ -417,7 +417,7 @@ const Creation: React.FC = () => {
                   value={categoryId == 0 ? undefined : categoryId}
                   style={{ width: 120 }}
                   onChange={handleCategoryChange}
-                  options={categories.map((category) => ({
+                  options={categories && categories.map((category) => ({
                     label: category.name,
                     value: category.id,
                   }))}
@@ -434,7 +434,7 @@ const Creation: React.FC = () => {
                   placeholder="Please select"
                   value={tagIds}
                   onChange={handleTagChange}
-                  options={tags.map((tag) => ({
+                  options={tags && tags.map((tag) => ({
                     label: tag.name,
                     value: tag.id,
                   }))}

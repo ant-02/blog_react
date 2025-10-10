@@ -1,19 +1,18 @@
 import classNames from "classnames";
 import { useState } from "react";
 import "./index.scss";
-import { Link } from "react-router-dom";
-import { loginAPI } from "../../apis/user";
+import { registerAPI } from "../../apis/user";
 import { setToken } from "../../utils/auth";
 import { login } from "../../stores/modules/userSlice";
 import { useDispatch } from "react-redux";
 import { message } from "antd";
 
-interface LoginCardProps {
+interface ReginsterCardProps {
   close: () => void;
-  toRegister: () => void;
+  toLogin: () => void;
 }
 
-const LoginCard: React.FC<LoginCardProps> = ({ close, toRegister }) => {
+const RegisterCard: React.FC<ReginsterCardProps> = ({ close, toLogin }) => {
   const [isShow, setIsShow] = useState<boolean>(false);
   const [phone, setPhone] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -26,7 +25,7 @@ const LoginCard: React.FC<LoginCardProps> = ({ close, toRegister }) => {
   const [errorPasswordMessage, setErrorPasswordMessage] =
     useState("密码不能为空");
 
-  const loginBtnClicked = () => {
+  const registerBtnClicked = () => {
     if (!isPhoneValid) {
       messageApi.open({
         type: "error",
@@ -40,14 +39,13 @@ const LoginCard: React.FC<LoginCardProps> = ({ close, toRegister }) => {
       });
     }
     if (!isPhoneValid || !isPasswordValid) return;
-    console.log(phone, password);
-    const loginRequest = async () => {
+    const registerRequest = async () => {
       try {
-        const res = await loginAPI(phone, password);
+        const res = await registerAPI(phone, password);
         if (res.status !== 200) {
           messageApi.open({
-            type: "error",
-            content: "账号或密码错误",
+            type: "warning",
+            content: "注册失败",
           });
           return;
         }
@@ -57,7 +55,7 @@ const LoginCard: React.FC<LoginCardProps> = ({ close, toRegister }) => {
         console.log(e);
       }
     };
-    loginRequest();
+    registerRequest();
   };
   const validatePhoneNumber = (number: string) => {
     // 移除所有非数字字符
@@ -150,7 +148,7 @@ const LoginCard: React.FC<LoginCardProps> = ({ close, toRegister }) => {
           ></i>
         </div>
         <div>
-          <div>账号登入</div>
+          <div>账号注册</div>
         </div>
         <div className={classNames("login-input")}>
           <div>
@@ -173,21 +171,18 @@ const LoginCard: React.FC<LoginCardProps> = ({ close, toRegister }) => {
                 isShow ? "iconfont icon-yincang" : "iconfont icon-xianshi",
                 "password-icon"
               )}
-              style={{ fontSize: "24px" }}
+              style={{ fontSize: "24px", marginRight: 10 }}
               onClick={() => setIsShow(!isShow)}
             ></i>
-            <Link to="/" className={classNames("forget")}>
-              忘记密码?
-            </Link>
           </div>
         </div>
         <div className={classNames("button-box")}>
-          <button onClick={toRegister}>注册</button>
-          <button onClick={loginBtnClicked}>登入</button>
+          <button onClick={toLogin}>返回</button>
+          <button onClick={registerBtnClicked}>注册</button>
         </div>
       </div>
     </div>
   );
 };
 
-export default LoginCard;
+export default RegisterCard;

@@ -24,7 +24,7 @@ const Category: React.FC = () => {
       <div className={classNames("category-in-container")}>
         <div className={classNames("category-title")}>全部专题</div>
         <div className={classNames("category-container")}>
-          {categories.map((category, index) => (
+          {categories && categories.map((category, index) => (
             <Link
               key={index}
               to="/articleList"

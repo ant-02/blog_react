@@ -33,3 +33,14 @@ export const fetchUserInfoAPI = () => {
     method: "GET",
   });
 };
+
+export const registerAPI = (phone: string, password: string) => {
+  return http.request<ResMsg<LoginResponse>>({
+    url: "/user/register",
+    method: "POST",
+    data: {
+      phone: phone,
+      password: password,
+    },
+  });
+};

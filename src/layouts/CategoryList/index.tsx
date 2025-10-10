@@ -22,9 +22,10 @@ const CategoryList: React.FC = () => {
   return (
     <div className={classNames("categoryList-out-container")}>
       <div className={classNames("categoryList-in-container")}>
-        {categoryList.map((category, index) => (
-          <CategoryNav key={index} category={category} />
-        ))}
+        {categoryList &&
+          categoryList.map((category, index) => (
+            <CategoryNav key={index} category={category} />
+          ))}
       </div>
     </div>
   );

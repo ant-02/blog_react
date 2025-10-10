@@ -6,10 +6,12 @@ import { Link } from "react-router-dom";
 import LoginCard from "../../components/LoginCard";
 import { useState } from "react";
 import Img from "../../assets/img/logo-white.png";
+import RegisterCard from "../../components/RegisterCard";
 
 const Login: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.user);
   const [isShow, setIsShow] = useState<boolean>(false);
+  const [isLogin, setIsLogin] = useState<boolean>(true);
 
   return (
     <div className={classNames("login")}>
@@ -28,7 +30,21 @@ const Login: React.FC = () => {
           >
             登入
           </button>
-          {isShow && <LoginCard close={() => setIsShow(false)} />}
+          {isShow &&
+            (isLogin ? (
+              <LoginCard
+                close={() => setIsShow(false)}
+                toRegister={() => setIsLogin(false)}
+              />
+            ) : (
+              <RegisterCard
+                close={() => {
+                  setIsShow(false);
+                  setIsLogin(true);
+                }}
+                toLogin={() => setIsLogin(true)}
+              />
+            ))}
         </div>
       )}
     </div>
