@@ -23,3 +23,17 @@ dist-ssr
 *.sln
 *.sw?
 package-lock.json
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# Yarn PnP
+.yarn/install-state.gz
+
+# TypeScript
+*.tsbuildinfo
+
+# Claude Code local data
+.claude/
