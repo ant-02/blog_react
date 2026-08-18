@@ -5,8 +5,6 @@ import { ThemeProvider } from "next-themes";
 import { router } from "./routes/router";
 import { Provider } from "react-redux";
 import "./index.css";
-import "./assets/icon/iconfont/iconfont.css";
-import "./main.scss";
 import store from "./stores";
 import Loading from "./components/Loading";
 import { Toaster } from "@/components/ui/sonner";

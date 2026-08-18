@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import classNames from "classnames";
 import SearchCard from "../../components/SearchCard";
 import { useLocation } from "react-router-dom";
+import { Search as SearchIcon } from "lucide-react";
 
 const Search: React.FC = () => {
   const [search, setSearch] = useState<string>("");
@@ -17,7 +18,7 @@ const Search: React.FC = () => {
           "focus-within:ring-2 focus-within:ring-ring"
         )}
       >
-        <i className="iconfont icon-sousuo px-2 text-muted-foreground"></i>
+        <SearchIcon className="mx-2 h-4 w-4 text-muted-foreground" />
         <input
           placeholder="搜索"
           value={search}

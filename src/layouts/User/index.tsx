@@ -9,6 +9,7 @@ import Loading from "../../components/Loading";
 import { logout } from "../../stores/modules/userSlice";
 import { clearToken } from "../../utils/auth";
 import { useNavigate } from "react-router-dom";
+import { Phone, Mail, Plus, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   useGetArticleDTOsByUserIdQuery,
@@ -126,11 +127,11 @@ const User: React.FC = () => {
               </div>
               <div className="mt-5 text-sm text-muted-foreground">
                 <div className="flex items-center pb-2">
-                  <i className="iconfont icon-dianhua"></i>
+                  <Phone className="h-4 w-4" />
                   <div className="pl-2">{user?.phone}</div>
                 </div>
                 <div className="flex items-center pb-2">
-                  <i className="iconfont icon-youxiang"></i>
+                  <Mail className="h-4 w-4" />
                   <div className="pl-2">{user?.email}</div>
                 </div>
               </div>
@@ -139,11 +140,12 @@ const User: React.FC = () => {
           <div className="w-[70%] rounded-2xl p-5 shadow-md">
             <div className="flex items-center justify-between p-5 text-base font-bold">
               <div>投稿</div>
-              <i
-                className="iconfont icon-tianjia cursor-pointer hover:text-green-600"
-                title="添加"
-                onClick={() => navigate("/creation")}
-              ></i>
+              <span title="添加">
+                <Plus
+                  className="h-5 w-5 cursor-pointer hover:text-green-600"
+                  onClick={() => navigate("/creation")}
+                />
+              </span>
             </div>
             <div className="flex flex-wrap justify-around">
               {isArticlesLoading && articleDTOs.length === 0 ? (
@@ -152,14 +154,14 @@ const User: React.FC = () => {
                 articleDTOs.map((articleDTO) => (
                   <div key={articleDTO.id} className="mx-4 my-5 flex items-end">
                     <ArticleCard article={articleDTO} />
-                    <i
-                      className="iconfont icon-xiugai cursor-pointer hover:text-green-600"
+                    <Pencil
+                      className="h-5 w-5 cursor-pointer hover:text-green-600"
                       onClick={() =>
                         navigate("/creation", {
                           state: { id: articleDTO.id },
                         })
                       }
-                    ></i>
+                    />
                   </div>
                 ))
               )}

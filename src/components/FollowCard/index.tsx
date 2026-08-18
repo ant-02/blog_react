@@ -8,6 +8,7 @@ import Loading from "../Loading";
 import { Button } from "@/components/ui/button";
 import { useUpdateIsFollowMutation } from "../../services/api";
 import { createPortal } from "react-dom";
+import { X } from "lucide-react";
 
 interface FollowCardProps {
   followerIds: number[];
@@ -158,7 +159,7 @@ const FollowCard: React.FC<FollowCardProps> = ({
               {"关注者 " + String(followingIds.length)}
             </span>
           </div>
-          <i className="iconfont icon-guanbi cursor-pointer text-[32px]" onClick={close}></i>
+          <X className="h-8 w-8 cursor-pointer" onClick={close} />
         </div>
         <div className="h-full w-full">
           {checked
