@@ -1,29 +1,32 @@
 import { useEffect, useState } from "react";
-import "./index.scss";
 import classNames from "classnames";
 import SearchCard from "../../components/SearchCard";
 import { useLocation } from "react-router-dom";
 
 const Search: React.FC = () => {
   const [search, setSearch] = useState<string>("");
-  const location = useLocation()
+  const location = useLocation();
   useEffect(() => {
-    setSearch("")
-  }, [location])
+    setSearch("");
+  }, [location]);
   return (
-    <div>
-      <div className={classNames("search")}>
-        <i className={classNames("iconfont icon-sousuo", "search-icon")}></i>
+    <div className="relative">
+      <div
+        className={classNames(
+          "flex h-[30px] items-center justify-center rounded-lg border border-border bg-background px-2",
+          "focus-within:ring-2 focus-within:ring-ring"
+        )}
+      >
+        <i className="iconfont icon-sousuo px-2 text-muted-foreground"></i>
         <input
           placeholder="搜索"
           value={search}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            setSearch(e.target.value)
-          }
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
+          className="border-none bg-transparent text-foreground outline-none"
           style={{ width: search === "" ? "132px" : "100px" }}
-        ></input>
+        />
         <button
-          className={classNames("search-clear")}
+          className="w-8 border-none bg-transparent text-xs text-foreground hover:text-primary"
           style={{ display: search === "" ? "none" : "flex" }}
           onClick={() => setSearch("")}
         >

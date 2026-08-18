@@ -1,31 +1,18 @@
-import classNames from "classnames";
-import { useEffect, useState } from "react";
-import { Category } from "../../models/category";
-import { fetchCategoriesAPI } from "../../apis/category";
 import CategoryNav from "../../components/CategoryNav";
-import "./index.scss";
+import Loading from "../../components/Loading";
+import { useGetCategoriesQuery } from "../../services/api";
 
 const CategoryList: React.FC = () => {
-  const [categoryList, setCategoryList] = useState<Category[]>([]);
-  useEffect(() => {
-    const getAllCategories = async () => {
-      try {
-        const res = await fetchCategoriesAPI();
-        setCategoryList(res.data.data);
-      } catch (err) {
-        console.log(err);
-      }
-    };
-    getAllCategories();
-  }, []);
+  const { data: categoryList, isLoading } = useGetCategoriesQuery();
+
+  if (isLoading) return <Loading />;
 
   return (
-    <div className={classNames("categoryList-out-container")}>
-      <div className={classNames("categoryList-in-container")}>
-        {categoryList &&
-          categoryList.map((category, index) => (
-            <CategoryNav key={index} category={category} />
-          ))}
+    <div className="flex flex-col items-center pt-[70px]">
+      <div className="w-[1320px] max-w-full px-4">
+        {categoryList?.map((category) => (
+          <CategoryNav key={category.id} category={category} />
+        ))}
       </div>
     </div>
   );

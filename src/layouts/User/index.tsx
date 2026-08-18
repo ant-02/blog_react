@@ -1,162 +1,174 @@
-import { useSelector } from "react-redux";
-import "./index.scss";
+import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../../stores";
 import Img from "../../assets/img/logo-white.png";
 import { useEffect, useState } from "react";
 import { ArticleDTO } from "../../models/article";
 import ArticleCard from "../../components/ArticleCard";
-import { fetchArticleDTOsByUserIdAPI } from "../../apis/article";
-import classNames from "classnames";
-import {
-  fetchUserFollowerIdsAPI,
-  fetchUserFollowingIdsAPI,
-} from "../../apis/userFollow";
+import FollowCard from "../../components/FollowCard";
+import Loading from "../../components/Loading";
 import { logout } from "../../stores/modules/userSlice";
 import { clearToken } from "../../utils/auth";
-import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
-import FollowCard from "../../components/FollowCard";
+import { Button } from "@/components/ui/button";
+import {
+  useGetArticleDTOsByUserIdQuery,
+  useGetUserFollowerIdsQuery,
+  useGetUserFollowingIdsQuery,
+} from "../../services/api";
 
 const User: React.FC = () => {
   const pageSize = 2;
-  const { user, isLoading } = useSelector((state: RootState) => state.user);
-  const [articleDTOs, setArticleDTOs] = useState<ArticleDTO[]>([]);
-  const [userFollowers, setUserFollowers] = useState<number[]>([]);
-  const [userFollowings, setUserFollowings] = useState<number[]>([]);
-  const [page, setPage] = useState<number>(1);
-  const [count, setCount] = useState<number>(0);
+  const { user, isLoading: isAuthLoading } = useSelector((state: RootState) => state.user);
+  const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [page, setPage] = useState<number>(1);
+  const [articleDTOs, setArticleDTOs] = useState<ArticleDTO[]>([]);
   const [isShow, setIsShow] = useState<boolean>(false);
   const [checked, setChecked] = useState<boolean>(true);
 
+  const userId = user?.id ? String(user.id) : "";
+
+  const { data: articlePage, isLoading: isArticlesLoading } = useGetArticleDTOsByUserIdQuery(
+    {
+      userId,
+      page: String(page),
+      pageSize: String(pageSize),
+      status: "all",
+    },
+    { skip: !userId }
+  );
+
+  const { data: userFollowers = [], refetch: refetchFollowers } = useGetUserFollowerIdsQuery(
+    userId,
+    { skip: !userId }
+  );
+  const { data: userFollowings = [] } = useGetUserFollowingIdsQuery(userId, {
+    skip: !userId,
+  });
+
   useEffect(() => {
-    if (!isLoading && user === null) {
-      Swal.fire("请登入！");
+    if (!isAuthLoading && user === null) {
       navigate("/");
     }
-  }, [isLoading]);
+  }, [isAuthLoading, user, navigate]);
 
   useEffect(() => {
-    const getArticleDTOsByUserId = async () => {
-      if (!user?.id) return;
-      const res1 = await fetchArticleDTOsByUserIdAPI(
-        String(user.id),
-        String(page),
-        String(pageSize),
-        "all"
+    if (articlePage?.articleDTOs) {
+      setArticleDTOs((prev) =>
+        page === 1 ? articlePage.articleDTOs : [...prev, ...articlePage.articleDTOs]
       );
-      const res2 = await fetchUserFollowerIdsAPI(String(user.id));
-      const res3 = await fetchUserFollowingIdsAPI(String(user.id));
-      if (res1.data.data.articleDTOs != null)
-        setArticleDTOs([...articleDTOs, ...res1.data.data.articleDTOs]);
-      setCount(res1.data.data.count);
-      setUserFollowers(res2.data.data || []);
-      setUserFollowings(res3.data.data || []);
-    };
-    getArticleDTOsByUserId();
-  }, [page, user]);
-
-  const refreshFollowers = async () => {
-    try {
-      const res2 = await fetchUserFollowerIdsAPI(String(user?.id));
-      const res3 = await fetchUserFollowingIdsAPI(String(user?.id));
-      setUserFollowers(res2.data.data || []);
-      setUserFollowings(res3.data.data || []);
-    } catch (e) {
-      console.log(e);
     }
-  };
+  }, [articlePage, page]);
+
+  if (isAuthLoading || user === null) {
+    return <Loading />;
+  }
 
   return (
-    <div className={classNames("user-out")}>
-      <div className={classNames("user-in")}>
-        <div className={classNames("user-header")}>
-          <div>
-            <img src={user?.avatar || Img}></img>
-            <span>{user?.username}</span>
+    <div className="flex justify-center">
+      <div className="w-[1300px] max-w-full px-4 pt-[60px]">
+        <div className="mt-5 flex items-center justify-between rounded-2xl p-5 shadow-md">
+          <div className="flex items-center">
+            <img
+              src={user?.avatar || Img}
+              alt={user?.username}
+              className="h-[92px] w-[92px] rounded-full object-cover"
+            />
+            <span className="ml-5 text-[32px] font-bold">{user?.username}</span>
           </div>
-          <div>
-            <button
-              onClick={() => {
-                clearToken();
-                logout();
-                window.location.reload();
-              }}
-            >
-              退出登入
-            </button>
-          </div>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              clearToken();
+              dispatch(logout());
+              navigate("/");
+            }}
+          >
+            退出登入
+          </Button>
         </div>
-        <div className={classNames("user-container")}>
-          <div className={classNames("user-container-left")}>
-            <div className={classNames("user-container-follow")}>
+        <div className="mt-10 flex justify-between">
+          <div className="w-[20%] rounded-2xl p-5 shadow-md">
+            <div className="flex items-center justify-center p-5">
               <div
+                className="flex cursor-pointer flex-col items-center border-r border-border pr-10"
                 onClick={() => {
                   setChecked(true);
                   setIsShow(true);
                 }}
               >
-                <div>关注了</div>
+                <div className="text-muted-foreground">关注了</div>
                 <div>{userFollowers.length}</div>
               </div>
               <div
+                className="flex cursor-pointer flex-col items-center pl-10"
                 onClick={() => {
                   setChecked(false);
                   setIsShow(true);
                 }}
               >
-                <div>关注者</div>
+                <div className="text-muted-foreground">关注者</div>
                 <div>{userFollowings.length}</div>
               </div>
             </div>
-            <div className={classNames("user-container-alter")}>
-              <button>修改个人资料</button>
+            <div className="pt-5">
+              <Button
+                variant="ghost"
+                className="w-full text-muted-foreground hover:bg-green-600/10 hover:text-green-600"
+              >
+                修改个人资料
+              </Button>
             </div>
-            <div className={classNames("user-container-info")}>
-              <div>个人简介</div>
-              <div>{user?.bio ? user.bio : "请设置个人动态～"}</div>
-              <div>
-                <div>
-                  <i className={classNames("iconfont icon-dianhua")}></i>
-                  <div>{user?.phone}</div>
+            <div className="pt-5">
+              <div className="mt-5 text-base font-bold text-foreground">个人简介</div>
+              <div className="mt-5 text-sm text-muted-foreground">
+                {user?.bio ? user.bio : "请设置个人动态～"}
+              </div>
+              <div className="mt-5 text-sm text-muted-foreground">
+                <div className="flex items-center pb-2">
+                  <i className="iconfont icon-dianhua"></i>
+                  <div className="pl-2">{user?.phone}</div>
                 </div>
-                <div>
-                  <i className={classNames("iconfont icon-youxiang")}></i>
-                  <div>{user?.email}</div>
+                <div className="flex items-center pb-2">
+                  <i className="iconfont icon-youxiang"></i>
+                  <div className="pl-2">{user?.email}</div>
                 </div>
               </div>
             </div>
           </div>
-          <div className={classNames("user-container-right")}>
-            <div>
+          <div className="w-[70%] rounded-2xl p-5 shadow-md">
+            <div className="flex items-center justify-between p-5 text-base font-bold">
               <div>投稿</div>
               <i
-                className={classNames(
-                  "iconfont icon-tianjia",
-                  "user-container-right-add"
-                )}
+                className="iconfont icon-tianjia cursor-pointer hover:text-green-600"
                 title="添加"
                 onClick={() => navigate("/creation")}
               ></i>
             </div>
-            <div className={classNames("user-container-right-content")}>
-              {articleDTOs.map((articleDTO, index) => (
-                <div key={index}>
-                  <ArticleCard article={articleDTO} />
-                  <i
-                    className="iconfont icon-xiugai"
-                    onClick={() =>
-                      navigate("/creation", {
-                        state: { id: articleDTO.id },
-                      })
-                    }
-                  ></i>
-                </div>
-              ))}
+            <div className="flex flex-wrap justify-around">
+              {isArticlesLoading && articleDTOs.length === 0 ? (
+                <Loading />
+              ) : (
+                articleDTOs.map((articleDTO) => (
+                  <div key={articleDTO.id} className="mx-4 my-5 flex items-end">
+                    <ArticleCard article={articleDTO} />
+                    <i
+                      className="iconfont icon-xiugai cursor-pointer hover:text-green-600"
+                      onClick={() =>
+                        navigate("/creation", {
+                          state: { id: articleDTO.id },
+                        })
+                      }
+                    ></i>
+                  </div>
+                ))
+              )}
             </div>
-            {page * pageSize < count && (
-              <div className={classNames("user-container-right-content-more")}>
-                <button onClick={() => setPage(page + 1)}>加载更多</button>
+            {page * pageSize < (articlePage?.count ?? 0) && (
+              <div className="flex justify-center">
+                <Button variant="secondary" onClick={() => setPage(page + 1)}>
+                  加载更多
+                </Button>
               </div>
             )}
           </div>
@@ -169,7 +181,7 @@ const User: React.FC = () => {
           checked={checked}
           setChecked={(checked: boolean) => setChecked(checked)}
           close={() => setIsShow(false)}
-          refreshFollower={refreshFollowers}
+          refreshFollower={refetchFollowers}
         />
       )}
     </div>

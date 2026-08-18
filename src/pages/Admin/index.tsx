@@ -1,7 +1,5 @@
 const Admin: React.FC = () => {
-    return (
-        <></>
-    )
-}
+  return <></>;
+};
 
-export default Admin
+export default Admin;

@@ -30,15 +30,7 @@ export const fetchArticleDTOsByUserIdAPI = (
   status: string
 ) => {
   return http.request<ResMsg<ArticleDTOs>>({
-    url:
-      "/article/dtos/userId/" +
-      userId +
-      "/" +
-      page +
-      "/" +
-      pageSize +
-      "/" +
-      status,
+    url: "/article/dtos/userId/" + userId + "/" + page + "/" + pageSize + "/" + status,
     method: "GET",
   });
 };

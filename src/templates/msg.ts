@@ -1,4 +1,4 @@
 export type ResMsg<T> = {
-    msg: string
-    data: T
-}
+  msg: string;
+  data: T;
+};

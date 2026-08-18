@@ -19,6 +19,14 @@ export type ArticleDTO = {
   updatedAt: string;
 };
 
+export type ArticleStatus = "draft" | "published" | "deleted";
+
+export type ArticleCreatePayload = Omit<Article, "id" | "createdAt" | "updatedAt" | "deletedAt">;
+
+export type ArticleUpdatePayload = Partial<ArticleCreatePayload> & {
+  id: number;
+};
+
 export type ArticleDTOs = {
   articleDTOs: ArticleDTO[];
   count: number;

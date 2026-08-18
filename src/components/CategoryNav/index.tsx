@@ -1,47 +1,40 @@
 import { Link } from "react-router-dom";
 import { Category } from "../../models/category";
-import "./index.scss";
-import classNames from "classnames";
-import { useEffect, useState } from "react";
-import { fetchArticleDTOsByCategoryIdAPI } from "../../apis/article";
-import { ArticleDTO } from "../../models/article";
 import ArticleCard from "../ArticleCard";
+import Loading from "../Loading";
+import { useGetArticleDTOsByCategoryIdQuery } from "../../services/api";
 
 interface CategoryProps {
   category: Category;
 }
 
 const CategoryNav: React.FC<CategoryProps> = ({ category }) => {
-  const [articleList, setArticleList] = useState<ArticleDTO[]>([]);
-  useEffect(() => {
-    const getArticleDTOByCategoryId = async () => {
-      try {
-        const res = await fetchArticleDTOsByCategoryIdAPI(
-          category.id.toString(),
-          "6"
-        );
-        setArticleList(res.data.data);
-      } catch (e) {
-        console.log(e);
-      }
-    };
-    getArticleDTOByCategoryId();
-  }, [category]);
+  const { data: articleList, isLoading } = useGetArticleDTOsByCategoryIdQuery({
+    id: category.id.toString(),
+    count: "6",
+  });
+
   return (
-    <div className={classNames("categoryNav")}>
-      <div className={classNames("categoryNav-header")}>
+    <div className="mb-20 mt-5 w-full">
+      <div className="m-5 text-[26px] font-bold">
         <Link to="/articleList" state={{ category }}>
           {category.name}
         </Link>
       </div>
-      <div className={classNames("categoryNav-container")}>
-        {articleList && articleList.map((article, index) => (
-            <ArticleCard key={index} article={article} />
-        ))}
+      <div className="flex flex-wrap">
+        {isLoading ? (
+          <Loading />
+        ) : (
+          articleList?.map((article) => (
+            <div key={article.id} className="m-5">
+              <ArticleCard article={article} />
+            </div>
+          ))
+        )}
       </div>
-      <div className={classNames("categoryNav-more-row")}>
+      <div className="my-10 w-full text-right">
         <Link
-          className={classNames("categoryNav-more-but")}
+          className="m-5 inline-block rounded-full bg-secondary px-[22px] py-2.5 text-lg font-bold text-secondary-foreground transition-colors hover:bg-secondary/80"
           to="/articleList"
           state={{ category }}
         >

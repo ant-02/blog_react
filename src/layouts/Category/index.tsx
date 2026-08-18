@@ -1,35 +1,23 @@
-import { useEffect, useState } from "react";
-import { Category as Cg } from "../../models/category";
-import { fetchCategoriesAPI } from "../../apis/category";
-import classNames from "classnames";
-import "./index.scss";
 import { Link } from "react-router-dom";
+import Loading from "../../components/Loading";
+import { useGetCategoriesQuery } from "../../services/api";
 
 const Category: React.FC = () => {
-  const [categories, setCategories] = useState<Cg[]>([]);
-  useEffect(() => {
-    const getAllCategories = async () => {
-      try {
-        const res = await fetchCategoriesAPI();
-        setCategories(res.data.data);
-      } catch (e) {
-        console.log(e);
-      }
-    };
-    getAllCategories();
-  }, []);
+  const { data: categories, isLoading } = useGetCategoriesQuery();
+
+  if (isLoading) return <Loading />;
 
   return (
-    <div className={classNames("category-out-container")}>
-      <div className={classNames("category-in-container")}>
-        <div className={classNames("category-title")}>全部专题</div>
-        <div className={classNames("category-container")}>
-          {categories && categories.map((category, index) => (
+    <div className="flex flex-col items-center pt-[70px]">
+      <div className="w-[1320px] max-w-full px-4">
+        <div className="mx-4 my-10 px-0 py-5 text-4xl font-bold">全部专题</div>
+        <div className="flex flex-wrap items-center">
+          {categories?.map((category) => (
             <Link
-              key={index}
+              key={category.id}
               to="/articleList"
               state={{ category }}
-              className={classNames("category-container-content")}
+              className="mx-4 my-2 flex h-9 items-center justify-center rounded-full border border-border bg-card px-[18px] text-center text-base text-card-foreground transition-colors hover:bg-foreground hover:text-background"
             >
               {category.name}
             </Link>

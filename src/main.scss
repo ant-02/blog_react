@@ -1,17 +1,26 @@
 a {
   text-decoration: none;
-  color: black;
+  color: var(--foreground);
 }
 
 /* 移除自动填充的背景色 */
 input:-webkit-autofill {
-  -webkit-text-fill-color: #000000 !important; /* 文字颜色 */
-  -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important; /* 背景色 */
+  -webkit-text-fill-color: var(--foreground) !important;
+  -webkit-box-shadow: 0 0 0px 1000px var(--background) inset !important;
 }
 
 /* 如果需要保持悬停/焦点状态 */
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
-  -webkit-text-fill-color: #000000 !important;
-  -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
+  -webkit-text-fill-color: var(--foreground) !important;
+  -webkit-box-shadow: 0 0 0px 1000px var(--background) inset !important;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  scroll-margin-top: 20vh;
 }

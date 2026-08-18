@@ -1,49 +1,46 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import {
-  fetchArticleAPI,
-  insertArticle,
-  updateArticleByIdAPI,
-} from "../../apis/article";
+import { fetchArticleDTOsByUserIdAPI } from "../../apis/article";
 import UploadButton from "../../components/UploadButton";
-import classNames from "classnames";
-import "./index.scss";
+import { FloatingActionGroup } from "../../components/FloatingActionGroup";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
-  Button,
-  Flex,
-  FloatButton,
-  Input,
   Select,
-  Space,
-  Upload,
-  UploadProps,
-  message,
-} from "antd";
-import TextArea from "antd/es/input/TextArea";
-import {
-  DeleteOutlined,
-  RocketOutlined,
-  SaveOutlined,
-  UploadOutlined,
-} from "@ant-design/icons";
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { MultiSelect } from "@/components/ui/multi-select";
+import { Rocket, Save, Trash2, Upload } from "lucide-react";
 import { useSelector } from "react-redux";
 import { RootState } from "../../stores";
-import Swal from "sweetalert2";
-import { DraggablePanel, Markdown } from "@ant-design/pro-editor";
+import ReactMarkdown from "react-markdown";
+import rehypeHighlight from "rehype-highlight";
 import { Flexbox } from "react-layout-kit";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 import TurndownService from "turndown";
-import { Category } from "../../models/category";
+import Loading from "../../components/Loading";
 import {
-  fetchCategoriesAPI,
-  fetchCategoryByArticleIdAPI,
-} from "../../apis/category";
-import { Tag } from "../../models/tag";
-import { fetchTagsAPI, fetchTagsByArticleIdAPI } from "../../apis/tag";
-import { Article } from "../../models/article";
-import { updateArticleCategoryAPI } from "../../apis/articleCategory";
-import { ArticleCategory } from "../../models/articleCategory";
+  Article,
+  ArticleCreatePayload,
+  ArticleStatus,
+  ArticleUpdatePayload,
+} from "../../models/article";
+import {
+  useCreateArticleMutation,
+  useGetArticleByIdQuery,
+  useGetCategoriesQuery,
+  useGetCategoryByArticleIdQuery,
+  useGetTagsByArticleIdQuery,
+  useGetTagsQuery,
+  useUpdateArticleCategoryMutation,
+  useUpdateArticleMutation,
+} from "../../services/api";
+import { toast } from "sonner";
 
 const Creation: React.FC = () => {
   const location = useLocation();
@@ -53,407 +50,267 @@ const Creation: React.FC = () => {
   const [summary, setSummary] = useState<string>("");
   const [coverImage, setCoverImage] = useState<string>("");
   const [content, setContent] = useState<string>("");
-  const { user, isLoading } = useSelector((state: RootState) => state.user);
+  const { user, isLoading: isAuthLoading } = useSelector((state: RootState) => state.user);
   const navigate = useNavigate();
-  const [markdown, setMarkdown] = useState("");
 
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [tags, setTags] = useState<Tag[]>([]);
   const [categoryId, setCategoryId] = useState<number>(0);
   const [tagIds, setTagIds] = useState<number[]>([]);
-  const turndownService = new TurndownService({
-    codeBlockStyle: "fenced", // 使用 ``` 而不是缩进
+
+  const { data: categories, isLoading: isCategoriesLoading } = useGetCategoriesQuery();
+  const { data: tags, isLoading: isTagsLoading } = useGetTagsQuery();
+
+  const { data: existingArticle, isLoading: isArticleLoading } = useGetArticleByIdQuery(
+    String(id),
+    { skip: !id }
+  );
+  const { data: existingCategoryId } = useGetCategoryByArticleIdQuery(String(articleId), {
+    skip: !articleId,
+  });
+  const { data: existingTagIds } = useGetTagsByArticleIdQuery(String(id), {
+    skip: !id,
   });
 
-  // ✅ 添加规则：把 <pre><code>...</code></pre> 转成 ``` 代码块
-  turndownService.addRule("fencedCodeBlock", {
-    filter: function (node) {
-      return (
-        node.nodeName === "PRE" &&
-        node.firstChild !== null &&
-        (node.firstChild as HTMLElement).nodeName === "CODE"
-      );
-    },
-    replacement: function (content, node) {
-      const codeNode = node.firstChild as HTMLElement;
-      const lang =
-        codeNode.getAttribute("class")?.match(/language-(\w+)/)?.[1] || "";
-      const code = codeNode.textContent || "";
-      return `\`\`\`${lang}\n${code}\n\`\`\`\n\n`;
-    },
-  });
+  const [createArticle] = useCreateArticleMutation();
+  const [updateArticle] = useUpdateArticleMutation();
+  const [updateArticleCategory] = useUpdateArticleCategoryMutation();
+
+  const markdownInputRef = useRef<HTMLInputElement>(null);
+
+  const turndownService = useMemo(
+    () =>
+      new TurndownService({
+        codeBlockStyle: "fenced",
+      }),
+    []
+  );
 
   useEffect(() => {
-    if (!isLoading && user === null) {
-      Swal.fire("请登入！");
+    turndownService.addRule("fencedCodeBlock", {
+      filter: function (node) {
+        return (
+          node.nodeName === "PRE" &&
+          node.firstChild !== null &&
+          (node.firstChild as HTMLElement).nodeName === "CODE"
+        );
+      },
+      replacement: function (_, node) {
+        const codeNode = node.firstChild as HTMLElement;
+        const lang = codeNode.getAttribute("class")?.match(/language-(\w+)/)?.[1] || "";
+        const code = codeNode.textContent || "";
+        return `\`\`\`${lang}\n${code}\n\`\`\`\n\n`;
+      },
+    });
+  }, [turndownService]);
+
+  useEffect(() => {
+    if (!isAuthLoading && user === null) {
+      toast.error("请登入！");
       navigate("/");
     }
-  }, [isLoading]);
+  }, [isAuthLoading, navigate, user]);
 
   useEffect(() => {
-    const getCategories = async () => {
-      try {
-        const res = await fetchCategoriesAPI();
-        setCategories(res.data.data);
-      } catch (e) {
-        console.log(e);
-      }
-    };
-    const getTags = async () => {
-      try {
-        const res = await fetchTagsAPI();
-        setTags(res.data.data);
-      } catch (e) {
-        console.log(e);
-      }
-    };
-    getCategories();
-    getTags();
-  }, []);
+    if (!existingArticle) return;
+    setArticleId(existingArticle.id);
+    setTitle(existingArticle.title);
+    setSummary(existingArticle.summary);
+    setCoverImage(existingArticle.coverImage);
+    setContent(existingArticle.content.replace(/\n/g, "<br>"));
+  }, [existingArticle]);
 
   useEffect(() => {
-    if (id === null || id === undefined) return;
-    const getArticle = async () => {
-      try {
-        const res = await fetchArticleAPI(String(id));
-        setArticleId(res.data.data.id);
-        setTitle(res.data.data.title);
-        setSummary(res.data.data.summary);
-        setCoverImage(res.data.data.coverImage);
-        setContent(res.data.data.content.replace(/\n/g, "<br>"));
-      } catch (e) {
-        console.log(e);
-      }
-    };
-    getArticle();
-  }, [id]);
+    if (existingCategoryId) {
+      setCategoryId(existingCategoryId);
+    }
+  }, [existingCategoryId]);
 
   useEffect(() => {
-    if (id === null || id === undefined) return;
-    console.log(id);
-    const getTagIds = async () => {
-      try {
-        const res = await fetchTagsByArticleIdAPI(String(id));
-        setTagIds(res.data.data);
-      } catch (e) {
-        console.log(e);
-      }
-    };
-    getTagIds();
-  }, [id, tags]);
+    if (existingTagIds) {
+      setTagIds(existingTagIds);
+    }
+  }, [existingTagIds]);
 
-  useEffect(() => {
-    if (id === null || id === undefined) return;
-    const getCategoryId = async () => {
-      try {
-        const res = await fetchCategoryByArticleIdAPI(String(articleId));
-        setCategoryId(res.data.data);
-      } catch (e) {
-        console.log(e);
-      }
-    };
-    getCategoryId();
-  }, [id, articleId]);
+  const markdown = useMemo(() => {
+    return turndownService.turndown(content).replace(/\\/g, "");
+  }, [content, turndownService]);
 
-  const handleCategoryChange = (value: number) => {
-    setCategoryId(value);
+  const buildPayload = (): Partial<Article> => ({
+    title,
+    summary,
+    coverImage,
+    content: markdown,
+    authorId: user?.id,
+  });
+
+  const fetchLatestDraftId = async (): Promise<number> => {
+    if (!user?.id) return 0;
+    try {
+      const res = await fetchArticleDTOsByUserIdAPI(String(user.id), "1", "1", "draft");
+      return res.data.data.articleDTOs[0]?.id ?? 0;
+    } catch (e) {
+      console.error(e);
+      return 0;
+    }
   };
 
-  const handleTagChange = (value: number[]) => {
-    setTagIds(value);
-  };
-
-  const onSummaryChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    setSummary(e.target.value);
-  };
-
-  const onTitleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    setTitle(e.target.value);
-  };
-
-  const props: UploadProps = {
-    name: "file",
-    accept: ".md",
-    multiple: false,
-    maxCount: 1,
-    customRequest: ({ onSuccess }) => {
-      setTimeout(() => {
-        onSuccess?.("ok");
-      }, 0);
-    },
-    onChange: (info) => {
-      const { file } = info;
-      if (file.status === "removed") {
-        setContent("");
+  const submitArticle = async (status: ArticleStatus) => {
+    if (status !== "deleted") {
+      if (title === "") {
+        toast.error("标题不能为空");
         return;
       }
-      if (file.status === "done") {
-        message.success(`${file.name} 文件已加载`);
-      } else if (file.status === "error") {
-        message.error(`${file.name} 文件加载失败`);
+      if (summary === "") {
+        toast.error("简介不能为空");
+        return;
+      }
+      if (categoryId === 0) {
+        toast.error("类型不能为空");
+        return;
+      }
+    }
+
+    if (!user?.id) {
+      toast.error("请登入！");
+      return;
+    }
+
+    const basePayload = buildPayload();
+
+    try {
+      let savedId = articleId;
+
+      if (articleId === 0) {
+        const result = await createArticle({
+          ...basePayload,
+          authorId: user.id,
+          status,
+        } as ArticleCreatePayload).unwrap();
+        savedId = typeof result === "number" ? result : await fetchLatestDraftId();
+      } else {
+        await updateArticle({
+          ...basePayload,
+          id: articleId,
+          authorId: user.id,
+          status,
+        } as ArticleUpdatePayload).unwrap();
       }
 
-      if (file.originFileObj) {
-        parseMarkdownFile(file.originFileObj);
+      if (savedId && categoryId) {
+        await updateArticleCategory({
+          articleId: savedId,
+          categoryId,
+        }).unwrap();
       }
-    },
+
+      const successText =
+        status === "published" ? "发布成功" : status === "deleted" ? "删除成功" : "保存成功";
+      toast.success(successText);
+
+      if (status === "published" || status === "deleted") {
+        navigate("/user");
+      }
+    } catch (e) {
+      toast.error("操作失败");
+      console.error(e);
+    }
+  };
+
+  const onSave = () => submitArticle("draft");
+  const onPublish = () => submitArticle("published");
+
+  const onDelete = async () => {
+    if (articleId === 0) return;
+    const confirmed = window.confirm("确认删除？");
+    if (!confirmed) return;
+    await submitArticle("deleted");
   };
 
   const parseMarkdownFile = (file: File) => {
     const reader = new FileReader();
 
     reader.onload = (e) => {
-      const content = e.target?.result as string;
-      setContent(content.replace(/\n/g, "<br>"));
+      const fileContent = e.target?.result as string;
+      setContent(fileContent.replace(/\n/g, "<br>"));
+      toast.success(`${file.name} 文件已加载`);
     };
 
     reader.onerror = () => {
-      message.error("文件读取失败");
+      toast.error("文件读取失败");
     };
 
     reader.readAsText(file);
   };
 
-  const onSave = () => {
-    const saveArticle = async () => {
-      if (title == "") {
-        Swal.fire("标题不能为空");
-        return;
-      }
-      if (summary == "") {
-        Swal.fire("简介不能为空");
-        return;
-      }
-      if (categoryId == 0) {
-        Swal.fire("类型不能为空");
-        return;
-      }
-      if (articleId == 0) {
-        const res = await insertArticle({
-          title: title,
-          summary: summary,
-          coverImage: coverImage,
-          content: turndownService.turndown(content).replace(/\\/g, ""),
-          authorId: user?.id,
-          status: "draft",
-        } as Article);
-        if (res.data.data) {
-          const res = await updateArticleCategoryAPI({
-            articleId: articleId,
-            categoryId: categoryId,
-          } as ArticleCategory);
-          if (res.data.data) {
-            Swal.fire({ text: "保存成功", icon: "success" });
-            return;
-          }
-        }
-        Swal.fire({ text: "保存失败", icon: "error" });
-      } else {
-        const res = await updateArticleByIdAPI({
-          id: articleId,
-          title: title,
-          summary: summary,
-          coverImage: coverImage,
-          content: turndownService.turndown(content).replace(/\\/g, ""),
-          authorId: user?.id,
-          status: "draft",
-        } as Article);
-        if (res.data.data) {
-          const res = await updateArticleCategoryAPI({
-            articleId: articleId,
-            categoryId: categoryId,
-          } as ArticleCategory);
-          if (res.data.data) {
-            Swal.fire({ text: "保存成功", icon: "success" });
-            return;
-          }
-        }
-        Swal.fire({ text: "保存失败", icon: "error" });
-      }
-    };
-    saveArticle();
+  const handleMarkdownFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    parseMarkdownFile(file);
   };
-
-  const onPublish = () => {
-    const publishArticle = async () => {
-      if (title == "") {
-        Swal.fire("标题不能为空");
-        return;
-      }
-      if (summary == "") {
-        Swal.fire("简介不能为空");
-        return;
-      }
-      if (categoryId == 0) {
-        Swal.fire("类型不能为空");
-        return;
-      }
-      if (articleId == 0) {
-        const res = await insertArticle({
-          title: title,
-          summary: summary,
-          coverImage: coverImage,
-          content: turndownService.turndown(content).replace(/\\/g, ""),
-          authorId: user?.id,
-          status: "published",
-        } as Article);
-        if (res.data.data) {
-          const res = await updateArticleCategoryAPI({
-            articleId: articleId,
-            categoryId: categoryId,
-          } as ArticleCategory);
-          if (res.data.data) {
-            Swal.fire({ text: "发布成功", icon: "success" });
-            navigate("/user");
-            return;
-          }
-        }
-        Swal.fire({ text: "发布失败", icon: "error" });
-        navigate("/user");
-      } else {
-        const res = await updateArticleByIdAPI({
-          id: articleId,
-          title: title,
-          summary: summary,
-          coverImage: coverImage,
-          content: turndownService.turndown(content).replace(/\\/g, ""),
-          authorId: user?.id,
-          status: "published",
-        } as Article);
-        if (res.data.data) {
-          const res = await updateArticleCategoryAPI({
-            articleId: articleId,
-            categoryId: categoryId,
-          } as ArticleCategory);
-          if (res.data.data) {
-            Swal.fire({ text: "发布成功", icon: "success" });
-            navigate("/user");
-            return;
-          }
-        }
-        Swal.fire({ text: "发布失败", icon: "error" });
-        navigate("/user");
-      }
-    };
-    publishArticle();
-  };
-
-  const onDelete = () => {
-    const deleteArticle = async () => {
-      if (title == "") {
-        Swal.fire("标题不能为空");
-        return;
-      }
-      if (summary == "") {
-        Swal.fire("简介不能为空");
-        return;
-      }
-      if (categoryId == 0) {
-        Swal.fire("类型不能为空");
-        return;
-      }
-      if (categoryId)
-        if (articleId == 0) {
-          const res = await insertArticle({
-            title: title,
-            summary: summary,
-            coverImage: coverImage,
-            content: turndownService.turndown(content).replace(/\\/g, ""),
-            authorId: user?.id,
-            status: "deleted",
-          } as Article);
-          if (res.data.data) {
-            Swal.fire({ text: "删除成功", icon: "success" });
-          } else {
-            Swal.fire({ text: "删除失败", icon: "error" });
-          }
-        } else {
-          const res = await updateArticleByIdAPI({
-            id: articleId,
-            title: title,
-            summary: summary,
-            coverImage: coverImage,
-            content: turndownService.turndown(content).replace(/\\/g, ""),
-            authorId: user?.id,
-            status: "deleted",
-          } as Article);
-          if (res.data.data) {
-            Swal.fire({ text: "删除成功", icon: "success" });
-          } else {
-            Swal.fire({ text: "删除失败", icon: "error" });
-          }
-          navigate("/user");
-        }
-    };
-    deleteArticle();
-  };
-
-  useEffect(() => {
-    const md = turndownService.turndown(content).replace(/\\/g, "");
-    setMarkdown(md);
-  }, [content]);
 
   const handleContentChange = (value: string) => {
-    setContent(value); // 原始 HTML
+    setContent(value);
   };
 
+  if (isAuthLoading || (id && isArticleLoading)) {
+    return <Loading />;
+  }
+
   return (
-    <div className={classNames("creation-out")}>
-      <div className={classNames("creation-in")}>
-        <div className={classNames("creation-header")}>
-          <div className={classNames("creation-header-left")}>
-            <div className={classNames("creation-title")}>
-              <span>标题:</span>
-              <Input value={title} onChange={onTitleChange} />
+    <div className="flex justify-center">
+      <div className="w-[1300px] max-w-full px-4 pt-[60px]">
+        <div className="mt-5 flex items-center justify-evenly">
+          <div className="flex flex-col">
+            <div className="mb-5 flex items-center">
+              <span className="p-[5px]">标题:</span>
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} className="w-[70%]" />
             </div>
-            <div className={classNames("creation-category")}>
-              <span>类型:</span>
-              <Space wrap>
-                <Select
-                  value={categoryId == 0 ? undefined : categoryId}
-                  style={{ width: 120 }}
-                  onChange={handleCategoryChange}
-                  options={categories && categories.map((category) => ({
-                    label: category.name,
-                    value: category.id,
-                  }))}
-                />
-              </Space>
+            <div className="mb-5">
+              <span className="p-[5px]">类型:</span>
+              <Select
+                value={categoryId === 0 ? "" : String(categoryId)}
+                onValueChange={(value) => setCategoryId(Number(value))}
+                disabled={isCategoriesLoading}
+              >
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="请选择" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories?.map((category) => (
+                    <SelectItem key={category.id} value={String(category.id)}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <div className={classNames("creation-tag")}>
-              <span>标签:</span>
-              <Space style={{ width: "70%" }} direction="vertical">
-                <Select
-                  mode="multiple"
-                  allowClear
-                  style={{ width: "100%" }}
-                  placeholder="Please select"
+            <div className="flex items-center">
+              <span className="p-[5px]">标签:</span>
+              <div className="w-[70%]">
+                <MultiSelect
+                  placeholder="请选择"
                   value={tagIds}
-                  onChange={handleTagChange}
-                  options={tags && tags.map((tag) => ({
+                  onChange={(value) => setTagIds(value)}
+                  loading={isTagsLoading}
+                  options={tags?.map((tag) => ({
                     label: tag.name,
                     value: tag.id,
                   }))}
                 />
-              </Space>
+              </div>
             </div>
           </div>
 
-          <div className={classNames("creation-summary")}>
-            <Flex vertical gap={32}>
-              <TextArea
-                showCount
-                maxLength={100}
-                onChange={onSummaryChange}
+          <div className="flex">
+            <div className="flex flex-col gap-2">
+              <Textarea
+                onChange={(e) => setSummary(e.target.value)}
                 placeholder="简介"
                 value={summary}
-                style={{ width: "500px", height: "140px", resize: "none" }}
+                maxLength={100}
+                className="h-[140px] w-[500px] resize-none"
               />
-            </Flex>
+              <span className="text-right text-xs text-muted-foreground">{summary.length}/100</span>
+            </div>
           </div>
 
           <div>
@@ -461,49 +318,46 @@ const Creation: React.FC = () => {
           </div>
         </div>
 
-        <div className={classNames("creation-content")}>
-          <div style={{ height: "65px" }}>
-            <Upload {...props}>
-              <Button icon={<UploadOutlined />}>Click to Upload</Button>
-            </Upload>
+        <div className="mt-20">
+          <div className="h-[65px]">
+            <input
+              ref={markdownInputRef}
+              type="file"
+              accept=".md"
+              className="hidden"
+              onChange={handleMarkdownFileChange}
+            />
+            <Button variant="outline" onClick={() => markdownInputRef.current?.click()}>
+              <Upload className="mr-2 h-4 w-4" />
+              上传 Markdown
+            </Button>
           </div>
 
-          <Flexbox horizontal>
-            <DraggablePanel
-              placement="left"
-              maxWidth={650}
-              style={{ width: "100%", padding: 12 }}
+          <Flexbox horizontal style={{ gap: 12 }}>
+            <div
+              style={{
+                width: "50%",
+                padding: 12,
+                borderRight: "1px solid #eaeaea",
+                overflow: "auto",
+              }}
             >
-              <Markdown>{markdown}</Markdown>
-            </DraggablePanel>
-            <div style={{ padding: 12, width: "100%" }}>
-              <ReactQuill
-                theme="snow"
-                value={content}
-                onChange={handleContentChange}
-              />
+              <ReactMarkdown rehypePlugins={[rehypeHighlight]}>{markdown || ""}</ReactMarkdown>
+            </div>
+            <div style={{ padding: 12, width: "50%" }}>
+              <ReactQuill theme="snow" value={content} onChange={handleContentChange} />
             </div>
           </Flexbox>
         </div>
 
-        <FloatButton.Group shape="circle" style={{ insetInlineEnd: 24 }}>
-          <FloatButton
-            icon={<RocketOutlined />}
-            tooltip="发布"
-            onClick={onPublish}
-          />
-          <FloatButton
-            icon={<SaveOutlined />}
-            tooltip="保存"
-            onClick={onSave}
-          />
-          <FloatButton
-            icon={<DeleteOutlined />}
-            tooltip="删除"
-            onClick={onDelete}
-          />
-          <FloatButton.BackTop visibilityHeight={0} tooltip="返回顶部" />
-        </FloatButton.Group>
+        <FloatingActionGroup
+          actions={[
+            { icon: Rocket, label: "发布", onClick: onPublish },
+            { icon: Save, label: "保存", onClick: onSave, variant: "secondary" },
+            { icon: Trash2, label: "删除", onClick: onDelete, variant: "destructive" },
+          ]}
+          showBackTop
+        />
       </div>
     </div>
   );

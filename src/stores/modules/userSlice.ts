@@ -22,8 +22,8 @@ const userSlice = createSlice({
       state.user = null;
     },
     setIsLoading(state, action: PayloadAction<{ isLoading: boolean }>) {
-      state.isLoading = action.payload.isLoading
-    }
+      state.isLoading = action.payload.isLoading;
+    },
   },
 });
 

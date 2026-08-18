@@ -1,5 +1,4 @@
-import { useState } from "react";
-import "./index.scss";
+import { useMemo, useState } from "react";
 import { generateSlugId } from "../../utils/rehypeSlug";
 
 interface MarkdownNavProps {
@@ -8,55 +7,66 @@ interface MarkdownNavProps {
   setActiveSection: (val: number) => void;
 }
 
+interface Heading {
+  id: string;
+  level: number;
+  text: string;
+}
+
+const parseHeadings = (markdownText: string): Heading[] => {
+  const existingIds = new Set<string>();
+  return markdownText
+    .split("\n")
+    .filter((line) => line.startsWith("#"))
+    .map((line) => {
+      const level = line.split(" ")[0].length;
+      const text = line.replace(/^#+\s*/, "");
+      const id = generateSlugId(text, {}, existingIds);
+      return { id, level, text };
+    });
+};
+
 const MarkdownNav: React.FC<MarkdownNavProps> = ({
   markdownText,
   activeSection,
   setActiveSection,
 }) => {
-  const [isHovered, setIsHovered] = useState<number>(0);
-  const headings = markdownText
-    .split("\n")
-    .filter((line) => line.startsWith("#"))
-    .map((line) => ({
-      level: line.split(" ")[0].length,
-      text: line.replace(/^#+\s*/, ""),
-    }));
+  const [isHovered, setIsHovered] = useState<number>(-1);
+  const headings = useMemo(() => parseHeadings(markdownText), [markdownText]);
 
   const handleNavClick = (id: number) => {
     setActiveSection(id);
   };
+
   return (
-    <div className="markdown-nav">
+    <div className="markdown-nav fixed left-0 top-[100px]">
       {headings.length > 0 && (
-        <nav>
-          <ul>
-            {headings.map((heading, index) => (
-              <li
-                key={index}
-                onClick={() => handleNavClick(index)}
-                style={{
-                  fontWeight: index === activeSection ? "bold" : "normal",
-                  borderRight:
-                    index === activeSection
-                      ? "2px solid #7D7E87"
-                      : "2px solid #eaeaea",
-                }}
-              >
-                <a
-                  href={"#" + generateSlugId(heading.text)}
-                  onMouseEnter={() => setIsHovered(index)}
-                  onMouseLeave={() => setIsHovered(-1)}
-                  style={{
-                    color:
-                      index === activeSection || index === isHovered
-                        ? "black"
-                        : "#7D7E87",
-                  }}
+        <nav className="m-0">
+          <ul className="block list-none flex-col">
+            {headings.map((heading, index) => {
+              const isActive = index === activeSection;
+              const isHover = index === isHovered;
+              return (
+                <li
+                  key={heading.id}
+                  onClick={() => handleNavClick(index)}
+                  className={`w-[250px] cursor-pointer border-r-2 py-0 ${
+                    isActive ? "border-muted-foreground font-bold" : "border-border"
+                  }`}
                 >
-                  {heading.text}
-                </a>
-              </li>
-            ))}
+                  <a
+                    href={"#" + heading.id}
+                    onMouseEnter={() => setIsHovered(index)}
+                    onMouseLeave={() => setIsHovered(-1)}
+                    className={`block px-[50px] text-sm leading-7 ${
+                      isActive || isHover ? "text-foreground" : "text-muted-foreground"
+                    }`}
+                  >
+                    {heading.text}
+                  </a>
+                </li>
+              );
+            })}
           </ul>
         </nav>
       )}

@@ -1,12 +1,13 @@
-import classNames from "classnames";
-import "./index.scss";
 import { useEffect, useState } from "react";
 import { UserDTO } from "../../models/user";
 import { fetchUserDTOByIdAPI } from "../../apis/user";
 import Avatar from "../../assets/img/logo-white.png";
-import { updateIsFollowAPI } from "../../apis/userFollow";
 import { useSelector } from "react-redux";
 import { RootState } from "../../stores";
+import Loading from "../Loading";
+import { Button } from "@/components/ui/button";
+import { useUpdateIsFollowMutation } from "../../services/api";
+import { createPortal } from "react-dom";
 
 interface FollowCardProps {
   followerIds: number[];
@@ -17,6 +18,34 @@ interface FollowCardProps {
   refreshFollower: () => void;
 }
 
+interface FollowUser extends UserDTO {
+  isToggled: boolean;
+}
+
+const FollowUserItem: React.FC<{
+  user: FollowUser;
+  onToggle: () => void;
+  isFollowing: boolean;
+}> = ({ user, onToggle, isFollowing }) => {
+  return (
+    <div className="flex w-full items-center justify-between">
+      <div className="flex items-center">
+        <img
+          src={user.avatar || Avatar}
+          alt={user.username}
+          className="h-[82px] w-[82px] rounded-full object-cover"
+        />
+        <div className="ml-2.5">{user.username}</div>
+      </div>
+      <div>
+        <Button variant={user.isToggled ? "default" : "outline"} size="sm" onClick={onToggle}>
+          {isFollowing ? (user.isToggled ? "关注" : "已关注") : user.isToggled ? "已关注" : "关注"}
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 const FollowCard: React.FC<FollowCardProps> = ({
   followerIds,
   followingIds,
@@ -25,141 +54,134 @@ const FollowCard: React.FC<FollowCardProps> = ({
   close,
   refreshFollower,
 }) => {
-  const [followers, setFollowers] = useState<UserDTO[]>([]);
-  const [followerDels, setFollowerDels] = useState<boolean[]>([]);
-  const [followings, setFollowings] = useState<UserDTO[]>([]);
-  const [followingAdds, setFollowingAdds] = useState<boolean[]>([]);
   const { user } = useSelector((state: RootState) => state.user);
+  const [updateIsFollow] = useUpdateIsFollowMutation();
+
+  const [followers, setFollowers] = useState<FollowUser[]>([]);
+  const [followings, setFollowings] = useState<FollowUser[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const getFollows = async () => {
+    let cancelled = false;
+    const load = async () => {
+      setIsLoading(true);
       try {
-        for (const id of followerIds) {
-          const res = await fetchUserDTOByIdAPI(String(id));
-          setFollowers([...followers, res.data.data]);
-          setFollowerDels([...followerDels, false]);
-        }
-        for (const id of followingIds) {
-          const res = await fetchUserDTOByIdAPI(String(id));
-          setFollowings([...followings, res.data.data]);
-          setFollowingAdds([
-            ...followingAdds,
-            followers.some(
-              (follower, index) =>
-                !followerDels[index] && follower.id === res.data.data.id
-            ),
-          ]);
-        }
+        const followerResults = await Promise.all(
+          followerIds.map((id) => fetchUserDTOByIdAPI(String(id)))
+        );
+        const followingResults = await Promise.all(
+          followingIds.map((id) => fetchUserDTOByIdAPI(String(id)))
+        );
+
+        if (cancelled) return;
+
+        const followerUsers = followerResults.map((res) => ({
+          ...res.data.data,
+          isToggled: false,
+        }));
+        const followingUsers = followingResults.map((res) => ({
+          ...res.data.data,
+          isToggled: followerUsers.some((f) => f.id === res.data.data.id),
+        }));
+
+        setFollowers(followerUsers);
+        setFollowings(followingUsers);
       } catch (e) {
-        console.log(e);
+        console.error(e);
+      } finally {
+        setIsLoading(false);
       }
     };
-    getFollows();
-  }, []);
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [followerIds, followingIds]);
 
-  const followerBtn = async (id: number, index: number) => {
+  const handleToggle = async (
+    targetUser: FollowUser,
+    index: number,
+    isFollowingSection: boolean
+  ) => {
+    if (!user?.id) return;
+
     try {
-      const res = await updateIsFollowAPI(
-        String(user?.id),
-        String(id),
-        followerDels[index] ? "1" : "0"
-      );
-      if (!res.data.data) return;
-      setFollowerDels(
-        followerDels.map((item, i) => (i == index ? !item : item))
-      );
+      await updateIsFollow({
+        followerId: String(user.id),
+        followingId: String(targetUser.id),
+        isFollow: targetUser.isToggled ? "0" : "1",
+      }).unwrap();
+
+      if (isFollowingSection) {
+        setFollowings((prev) =>
+          prev.map((item, i) => (i === index ? { ...item, isToggled: !item.isToggled } : item))
+        );
+      } else {
+        setFollowers((prev) =>
+          prev.map((item, i) => (i === index ? { ...item, isToggled: !item.isToggled } : item))
+        );
+      }
       refreshFollower();
     } catch (e) {
-      console.log(e);
+      console.error(e);
     }
   };
 
-  const followingBtn = async (id: number, index: number) => {
-    try {
-      const res = await updateIsFollowAPI(
-        String(user?.id),
-        String(id),
-        followingAdds[index] ? "1" : "0"
-      );
-      if (!res.data.data) return;
-      setFollowingAdds(
-        followingAdds.map((item, i) => (i == index ? !item : item))
-      );
-      refreshFollower();
-    } catch (e) {
-      console.log(e);
-    }
-  };
+  if (isLoading) {
+    return <Loading />;
+  }
 
-  return (
-    <div className={classNames("followCard-out-container")}>
-      <div className={classNames("followCard-in-container")}>
-        <div className={classNames("followCard-container-title")}>
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) close();
+      }}
+    >
+      <div className="flex h-[60vh] w-[40vw] min-w-[320px] flex-col items-center overflow-y-auto overflow-x-hidden rounded-tl-3xl bg-card p-2.5 px-5 text-card-foreground">
+        <div className="flex w-full items-center justify-between pt-2.5">
           <div>
             <span
-              style={checked ? { color: "#262626bf" } : {}}
+              className={`m-[5px] inline-block cursor-pointer border-r border-border px-2.5 py-0 text-sm ${
+                checked ? "text-foreground" : "text-muted-foreground"
+              }`}
               onClick={() => setChecked(true)}
             >
               {"关注了 " + String(followerIds.length)}
             </span>
             <span
-              style={checked ? {} : { color: "#262626bf" }}
+              className={`m-[5px] inline-block cursor-pointer px-2.5 py-0 text-sm ${
+                checked ? "text-muted-foreground" : "text-foreground"
+              }`}
               onClick={() => setChecked(false)}
             >
               {"关注者 " + String(followingIds.length)}
             </span>
           </div>
-          <i
-            className={classNames("iconfont icon-guanbi icon-close")}
-            style={{ fontSize: "24px" }}
-            onClick={close}
-          ></i>
+          <i className="iconfont icon-guanbi cursor-pointer text-[32px]" onClick={close}></i>
         </div>
-        <div className={classNames("followCard-container")}>
+        <div className="h-full w-full">
           {checked
             ? followers.map((follower, index) => (
-                <div key={index}>
-                  <div>
-                    <img src={follower.avatar || Avatar}></img>
-                    <div>{follower.username}</div>
-                  </div>
-                  <div>
-                    <button
-                      style={
-                        followerDels[index]
-                          ? { backgroundColor: "#2db55d", color: "white" }
-                          : {}
-                      }
-                      onClick={() => followerBtn(follower.id, index)}
-                    >
-                      {followerDels[index] ? "关注" : "已关注"}
-                    </button>
-                  </div>
-                </div>
+                <FollowUserItem
+                  key={follower.id}
+                  user={follower}
+                  isFollowing={false}
+                  onToggle={() => handleToggle(follower, index, false)}
+                />
               ))
             : followings.map((following, index) => (
-                <div key={index}>
-                  <div>
-                    <img src={following.avatar || Avatar}></img>
-                    <div>{following.username}</div>
-                  </div>
-                  <div>
-                    <button
-                      style={
-                        !followingAdds[index]
-                          ? {}
-                          : { backgroundColor: "#2db55d", color: "white" }
-                      }
-                      onClick={() => followingBtn(following.id, index)}
-                    >
-                      {!followingAdds[index] ? "已关注" : "关注"}
-                    </button>
-                  </div>
-                </div>
+                <FollowUserItem
+                  key={following.id}
+                  user={following}
+                  isFollowing={true}
+                  onToggle={() => handleToggle(following, index, true)}
+                />
               ))}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

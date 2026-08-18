@@ -1,50 +1,43 @@
-import classNames from "classnames";
-import "./index.scss";
 import { useSelector } from "react-redux";
 import { RootState } from "../../stores";
 import { Link } from "react-router-dom";
-import LoginCard from "../../components/LoginCard";
 import { useState } from "react";
 import Img from "../../assets/img/logo-white.png";
-import RegisterCard from "../../components/RegisterCard";
+import AuthCard from "../../components/AuthCard";
+import { Button } from "@/components/ui/button";
 
 const Login: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.user);
-  const [isShow, setIsShow] = useState<boolean>(false);
-  const [isLogin, setIsLogin] = useState<boolean>(true);
+  const [isShow, setIsShow] = useState(false);
+  const [mode, setMode] = useState<"login" | "register">("login");
+
+  const handleClose = () => {
+    setIsShow(false);
+    setMode("login");
+  };
 
   return (
-    <div className={classNames("login")}>
+    <div className="ml-5">
       {user ? (
         <Link to="/user">
           <img
             src={user.avatar || Img}
-            className={classNames("header-user-avatar")}
-          ></img>
+            alt="avatar"
+            className="h-8 w-8 rounded-full border border-border object-cover"
+          />
         </Link>
       ) : (
         <div>
-          <button
-            className={classNames("login-button")}
-            onClick={() => setIsShow(true)}
-          >
+          <Button variant="outline" size="sm" onClick={() => setIsShow(true)}>
             登入
-          </button>
-          {isShow &&
-            (isLogin ? (
-              <LoginCard
-                close={() => setIsShow(false)}
-                toRegister={() => setIsLogin(false)}
-              />
-            ) : (
-              <RegisterCard
-                close={() => {
-                  setIsShow(false);
-                  setIsLogin(true);
-                }}
-                toLogin={() => setIsLogin(true)}
-              />
-            ))}
+          </Button>
+          {isShow && (
+            <AuthCard
+              mode={mode}
+              close={handleClose}
+              switchMode={() => setMode((prev) => (prev === "login" ? "register" : "login"))}
+            />
+          )}
         </div>
       )}
     </div>

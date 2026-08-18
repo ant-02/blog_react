@@ -22,19 +22,9 @@ export const fetchIsFollowAPI = (followerId: string, followingId: string) => {
   });
 };
 
-export const updateIsFollowAPI = (
-  followerId: string,
-  followingId: string,
-  isFollow: string
-) => {
+export const updateIsFollowAPI = (followerId: string, followingId: string, isFollow: string) => {
   return http.request<ResMsg<boolean>>({
-    url:
-      "/userFollow/auth/isFollow/" +
-      followerId +
-      "/" +
-      followingId +
-      "/" +
-      isFollow,
+    url: "/userFollow/auth/isFollow/" + followerId + "/" + followingId + "/" + isFollow,
     method: "PUT",
   });
 };

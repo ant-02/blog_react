@@ -9,12 +9,7 @@ export const generateSlugId = (
   existingIds: Set<string> = new Set()
 ): string => {
   // 默认配置
-  const {
-    prefix = "",
-    maintainCase = false,
-    separator = "-",
-    allowUnicode = true,
-  } = options;
+  const { prefix = "", maintainCase = false, separator = "-", allowUnicode = true } = options;
 
   // 1. 大小写处理
   let id = maintainCase ? text : text.toLowerCase();
